@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Data Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #f4f4f4;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="welcome-page">
+    <h1>Welcome to School Data Management</h1>
+    <button id="continue-button">Continue</button>
+  </div>
+
+  <div id="main-page" class="hidden">
+    <button id="school-button">As a School</button>
+    <button id="teacher-button">As a Teacher</button>
+  </div>
+
+  <div id="school-view" class="hidden">
+    <h2>School View</h2>
+    <input type="text" id="school-id" placeholder="Enter School ID">
+    <button id="add-row-button">Add Student Row</button>
+    <button id="save-button">Save Data</button>
+    <table id="students-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Class</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows will be added here -->
+      </tbody>
+    </table>
+  </div>
+
+  <div id="teacher-view" class="hidden">
+    <h2>Teacher View</h2>
+    <input type="text" id="teacher-id" placeholder="Enter School ID">
+    <button id="find-button">Find Data</button>
+    <div id="teacher-data"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyC8sGSHAWIkG7Jq7DPXg7II1dgFCXZ4_TU",
+      authDomain: "train-e7f95.firebaseapp.com",
+      databaseURL: "https://shool-70ffb-default-rtdb.firebaseio.com/",
+      projectId: "train-e7f95",
+      storageBucket: "train-e7f95.appspot.com",
+      messagingSenderId: "1052862647968",
+      appId: "1:1052862647968:web:0d67b008281f1919ca43c5",
+      measurementId: "G-925WN7STJZ"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    document.getElementById('continue-button').addEventListener('click', () => {
+      document.getElementById('welcome-page').classList.add('hidden');
+      document.getElementById('main-page').classList.remove('hidden');
+    });
+
+    document.getElementById('school-button').addEventListener('click', () => {
+      document.getElementById('main-page').classList.add('hidden');
+      document.getElementById('school-view').classList.remove('hidden');
+    });
+
+    document.getElementById('teacher-button').addEventListener('click', () => {
+      document.getElementById('main-page').classList.add('hidden');
+      document.getElementById('teacher-view').classList.remove('hidden');
+    });
+
+    document.getElementById('add-row-button').addEventListener('click', () => {
+      const tbody = document.querySelector('#students-table tbody');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" class="student-name" placeholder="Name"></td>
+        <td><input type="number" class="student-age" placeholder="Age"></td>
+        <td><input type="text" class="student-class" placeholder="Class"></td>
+        <td><button class="remove-row-button">Remove</button></td>
+      `;
+      tbody.appendChild(row);
+
+      // Add event listener to remove button in the new row
+      row.querySelector('.remove-row-button').addEventListener('click', () => {
+        tbody.removeChild(row);
+      });
+    });
+
+    document.getElementById('save-button').addEventListener('click', async () => {
+      const schoolId = document.getElementById('school-id').value;
+      const rows = document.querySelectorAll('#students-table tbody tr');
+      const students = Array.from(rows).map(row => ({
+        name: row.querySelector('.student-name').value,
+        age: row.querySelector('.student-age').value,
+        class: row.querySelector('.student-class').value
+      }));
+
+      try {
+        await set(ref(database, 'schools/' + schoolId), {
+          students: students
+        });
+        alert(`Data saved successfully with ID: ${schoolId}`);
+      } catch (e) {
+        console.error('Error saving data: ', e);
+      }
+    });
+
+    document.getElementById('find-button').addEventListener('click', async () => {
+      const teacherId = document.getElementById('teacher-id').value;
+      const dbRef = ref(database, 'schools/' + teacherId);
+
+      try {
+        const snapshot = await get(dbRef);
+
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const students = data.students;
+          let output = '<table><tr><th>Name</th><th>Age</th><th>Class</th></tr>';
+          students.forEach(student => {
+            output += `<tr><td>${student.name}</td><td>${student.age}</td><td>${student.class}</td></tr>`;
+          });
+          output += '</table>';
+          document.getElementById('teacher-data').innerHTML = output;
+        } else {
+          document.getElementById('teacher-data').innerHTML = 'No data found for this ID.';
+        }
+      } catch (e) {
+        console.error('Error retrieving data: ', e);
+      }
+    });
+  </script>
+</body>
+</html>
